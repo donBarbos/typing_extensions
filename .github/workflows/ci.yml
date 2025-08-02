@@ -83,6 +83,24 @@ jobs:
           # because we monkeypatch typing under some circumstances.
           python -c 'import typing_extensions; import test.__main__' test_typing -v
 
+      - name: Test CPython patched typing test suite
+        # Test suite fails on PyPy even without typing_extensions
+        if: ${{ !startsWith(matrix.python-version, 'pypy') }}
+        run: |
+          set -e
+          cd src
+          # Detect correct CPython branch
+          PY_VER="${{ matrix.python-version }}"
+          if [[ "$PY_VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            BRANCH="v$PY_VER" # use tag
+          else
+            BRANCH="$PY_VER" # use branch
+          fi
+
+          curl -fsSL "https://raw.githubusercontent.com/python/cpython/$BRANCH/Lib/test/test_typing.py" \
+          | sed 's/from typing /from typing_extensions /g; s/import typing/import typing_extensions as typing/g' \
+          | python -
+
   create-issue-on-failure:
     name: Create an issue if daily tests failed
     runs-on: ubuntu-latest
