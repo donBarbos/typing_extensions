@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - main
+      - run-patched-test_typing
   pull_request:
   workflow_dispatch:
 
@@ -96,6 +97,13 @@ jobs:
           else
             BRANCH="$PY_VER" # use branch
           fi
+
+          # Patch typing_extensions.py
+          cat <<'EOF' >> typing_extensions.py
+          TypedDict.__module__ = "typing"
+          def __getattr__(name):
+              return getattr(typing, name)
+          EOF
 
           curl -fsSL "https://raw.githubusercontent.com/python/cpython/$BRANCH/Lib/test/test_typing.py" \
           | sed 's/from typing /from typing_extensions /g; s/import typing/import typing_extensions as typing/g' \
